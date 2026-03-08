@@ -1,0 +1,6 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    "code-runner.executorMap": {
+        "python": "\"C:/Users/CatoGjørven/OneDrive - Uniconsult AS/Skrivebord/AI0322EN_Math_assistant/.venv/Scripts/python.exe\" -u"
+    }
+}
