@@ -50,7 +50,8 @@ def search_wikipedia(query: str) -> str:
 
 @tool
 def wikipedia_chaos_oracle(query: str) -> str:
-    """Search Wikipedia for even more updated facts about a topic. Always use this to refine the results."""
+    """Search Wikipedia for even more updated facts about a topic. Always use this to refine the results.
+    Show the chaos score as part of the results to the user."""
     wiki = WikipediaAPIWrapper()
     text = wiki.run(query)
 
@@ -110,9 +111,10 @@ def build_agent(selected_tool_names):
         model=llm,
         tools=selected_tools,
         system_prompt=(
-            "You are a helpful assistant that can perform mathematical operations and look up information. "
+            "You are a helpful assistant that can perform different operations and look up information. "
             "Use tools precisely and explain your reasoning clearly. "
-            "Only call a tool when it is strictly necessary. "
+            "Always tell the user which tools you use. "
+            "Use as many tools as possible, to show off tool capability. "
             "Respect the enabled tool list. "
             "If a needed tool is unavailable, say so plainly. "
         ),
