@@ -55,8 +55,8 @@ def search_wikipedia(query: str) -> str:
 @tool
 def wikipedia_chaos_oracle(query: str) -> str:
     """
-    Search Wikipedia and transform the result into a weird chaotic oracle-style remix.
-    Useful only for fun demos and bizarre summaries.
+    Search Wikipedia and turn the result into a bizarre oracle-style remix.
+    Useful for weird demo output.
     """
     wiki = WikipediaAPIWrapper()
     text = wiki.run(query)
@@ -64,33 +64,28 @@ def wikipedia_chaos_oracle(query: str) -> str:
     if not text or not text.strip():
         return "The chaos oracle found only silence."
 
-    # Clean and split into words
     words = re.findall(r"\b[\w'-]+\b", text)
-
     if not words:
         return "The chaos oracle stared into the void and found no words."
 
-    # Pick some words deterministically-ish but with randomness for fun
     unique_words = list(dict.fromkeys(words))
     random.shuffle(unique_words)
 
     chosen = unique_words[: min(18, len(unique_words))]
     reversed_words = [w[::-1] for w in chosen[:5]]
     shouted_words = [w.upper() for w in chosen[5:10]]
-    tiny_words = [w.lower() for w in chosen[10:15]]
+    whispered_words = [w.lower() for w in chosen[10:15]]
 
     fragments = []
     if reversed_words:
         fragments.append("mirror: " + ", ".join(reversed_words))
     if shouted_words:
         fragments.append("prophecy: " + " | ".join(shouted_words))
-    if tiny_words:
-        fragments.append("whispers: " + " ~ ".join(tiny_words))
+    if whispered_words:
+        fragments.append("whispers: " + " ~ ".join(whispered_words))
 
-    # Make a fake “score”
     chaos_score = sum(ord(c) for c in "".join(chosen[:8])) % 1000
 
-    # Grab first sentence-ish chunk
     first_chunk = text[:220].strip().replace("\n", " ")
     if len(text) > 220:
         first_chunk += "..."
@@ -114,7 +109,11 @@ ALL_TOOLS = {
 }
 
 
-def build_agent(selected_tool_names: list[str]):
+# -----------------------------
+# Agent factory
+# -----------------------------
+
+def build_agent(selected_tool_names):
     selected_tools = [ALL_TOOLS[name] for name in selected_tool_names if name in ALL_TOOLS]
 
     llm = ChatOpenAI(model="gpt-4.1-nano")
@@ -126,7 +125,8 @@ def build_agent(selected_tool_names: list[str]):
             "You are a helpful assistant that can perform mathematical operations and look up information. "
             "Use tools precisely and explain your reasoning clearly. "
             "Only call a tool when it is strictly necessary. "
-            "Respect the enabled tool list. If a needed tool is unavailable, say so plainly. "
+            "Respect the enabled tool list. "
+            "If a needed tool is unavailable, say so plainly. "
             "The wikipedia_chaos_oracle tool is weird and playful; only use it when the user explicitly asks for something strange, chaotic, playful, bizarre, or experimental."
         ),
     )
@@ -137,18 +137,20 @@ def build_agent(selected_tool_names: list[str]):
 # Agent invocation
 # -----------------------------
 
-def run_agent(message: str, history: list | None, selected_tools: list[str]):
+def run_agent(message, history, selected_tools):
     if history is None:
         history = []
 
+    if not message or not str(message).strip():
+        return history, "No input provided.", ""
+
     if not selected_tools:
-        assistant_reply = "No tools are enabled. Please check at least one tool."
-        history.append({"role": "user", "content": message})
-        history.append({"role": "assistant", "content": assistant_reply})
+        history.append((message, "No tools are enabled. Please check at least one tool."))
         return history, "No tools enabled.", ""
 
     try:
         agent = build_agent(selected_tools)
+
         response = agent.invoke(
             {
                 "messages": [
@@ -176,15 +178,21 @@ def run_agent(message: str, history: list | None, selected_tools: list[str]):
                 content = getattr(msg, "content", "")
                 tool_lines.append(f"  → {content}")
 
-        final_answer = messages[-1].content if messages else "No response generated."
+        if messages:
+            last_message = messages[-1]
+            final_answer = getattr(last_message, "content", "No response generated.")
+            if isinstance(final_answer, list):
+                final_answer = str(final_answer)
+        else:
+            final_answer = "No response generated."
+
         tool_trace = "\n".join(tool_lines) if tool_lines else "No tools used."
 
     except Exception as e:
         final_answer = f"Error: {e}"
         tool_trace = "Execution failed."
 
-    history.append({"role": "user", "content": message})
-    history.append({"role": "assistant", "content": final_answer})
+    history.append((message, final_answer))
     return history, tool_trace, ""
 
 
@@ -194,7 +202,7 @@ def run_agent(message: str, history: list | None, selected_tools: list[str]):
 
 tool_names = list(ALL_TOOLS.keys())
 
-with gr.Blocks(title="Math & Knowledge Assistant", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="Math & Knowledge Assistant") as demo:
     gr.Markdown(
         "# 🧮 Math & Knowledge Assistant\n"
         "Ask math questions, look up facts via Wikipedia, or unleash a weird chaos-oracle remix.\n\n"
@@ -203,7 +211,7 @@ with gr.Blocks(title="Math & Knowledge Assistant", theme=gr.themes.Soft()) as de
 
     with gr.Row():
         with gr.Column(scale=3):
-            chatbot = gr.Chatbot(label="Conversation", height=450, type="messages")
+            chatbot = gr.Chatbot(label="Conversation", height=450)
 
             with gr.Row():
                 user_input = gr.Textbox(
@@ -256,4 +264,8 @@ with gr.Blocks(title="Math & Knowledge Assistant", theme=gr.themes.Soft()) as de
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port,
+        theme=gr.themes.Soft()
+    )
