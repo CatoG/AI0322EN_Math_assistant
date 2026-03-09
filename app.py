@@ -8,7 +8,7 @@ load_dotenv()
 
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langchain_community.utilities import WikipediaAPIWrapper
 import gradio as gr
 
