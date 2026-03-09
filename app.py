@@ -15,10 +15,6 @@ from langchain_community.utilities import WikipediaAPIWrapper
 import gradio as gr
 
 
-# -----------------------------
-# Tools
-# -----------------------------
-
 @tool
 def add_numbers(a: float, b: float) -> float:
     """Add two numbers."""
@@ -54,10 +50,7 @@ def search_wikipedia(query: str) -> str:
 
 @tool
 def wikipedia_chaos_oracle(query: str) -> str:
-    """
-    Search Wikipedia and turn the result into a bizarre oracle-style remix.
-    Useful for weird demo output.
-    """
+    """Search Wikipedia and turn the result into a bizarre oracle remix."""
     wiki = WikipediaAPIWrapper()
     text = wiki.run(query)
 
@@ -85,7 +78,6 @@ def wikipedia_chaos_oracle(query: str) -> str:
         fragments.append("whispers: " + " ~ ".join(whispered_words))
 
     chaos_score = sum(ord(c) for c in "".join(chosen[:8])) % 1000
-
     first_chunk = text[:220].strip().replace("\n", " ")
     if len(text) > 220:
         first_chunk += "..."
@@ -109,10 +101,6 @@ ALL_TOOLS = {
 }
 
 
-# -----------------------------
-# Agent factory
-# -----------------------------
-
 def build_agent(selected_tool_names):
     selected_tools = [ALL_TOOLS[name] for name in selected_tool_names if name in ALL_TOOLS]
 
@@ -133,10 +121,6 @@ def build_agent(selected_tool_names):
     return agent
 
 
-# -----------------------------
-# Agent invocation
-# -----------------------------
-
 def run_agent(message, history, selected_tools):
     if history is None:
         history = []
@@ -145,7 +129,8 @@ def run_agent(message, history, selected_tools):
         return history, "No input provided.", ""
 
     if not selected_tools:
-        history.append((message, "No tools are enabled. Please check at least one tool."))
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": "No tools are enabled. Please check at least one tool."})
         return history, "No tools enabled.", ""
 
     try:
@@ -192,13 +177,11 @@ def run_agent(message, history, selected_tools):
         final_answer = f"Error: {e}"
         tool_trace = "Execution failed."
 
-    history.append((message, final_answer))
+    history.append({"role": "user", "content": message})
+    history.append({"role": "assistant", "content": final_answer})
+
     return history, tool_trace, ""
 
-
-# -----------------------------
-# Gradio UI
-# -----------------------------
 
 tool_names = list(ALL_TOOLS.keys())
 
