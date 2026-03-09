@@ -6,7 +6,6 @@ langgraph
 ddgs
 wikipedia
 python-dotenv
-duckduckgo-search 
 arxiv 
 matplotlib
 yfinance 
