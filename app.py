@@ -13,6 +13,8 @@ load_dotenv()
 
 import gradio as gr
 import yfinance as yf
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from langchain_openai import ChatOpenAI
@@ -433,6 +435,7 @@ def run_agent(message, history, selected_tools):
                 content = getattr(msg, "content", "")
                 content_str = str(content)
 
+                # Case 1: tool output contains embedded chart payload
                 payload = try_extract_chart_payload(content_str)
                 if payload:
                     try:
@@ -446,6 +449,17 @@ def run_agent(message, history, selected_tools):
                     except Exception as chart_error:
                         tool_lines.append(f"  → Chart generation failed: {chart_error}")
 
+                # Case 2: agent called generate_line_chart directly
+                match = re.search(r"Chart saved to:\s*(.+\.png)", content_str)
+                if match:
+                    possible_path = match.group(1).strip()
+                    if os.path.exists(possible_path):
+                        chart_path = possible_path
+                    else:
+                        abs_path = os.path.abspath(possible_path)
+                        if os.path.exists(abs_path):
+                            chart_path = abs_path
+
                 shortened = content_str
                 if len(shortened) > 1200:
                     shortened = shortened[:1200] + "..."
@@ -458,11 +472,6 @@ def run_agent(message, history, selected_tools):
                 final_answer = str(final_answer)
         else:
             final_answer = "No response generated."
-
-        # Optional fallback: if user clearly asked for a chart and chart tool exists,
-        # but agent only used get_stock_history (which returned payload),
-        # the app-side auto-chart already handled it.
-        # So no extra fallback is needed here.
 
         tool_trace = "\n".join(tool_lines) if tool_lines else "No tools used."
 
@@ -555,5 +564,6 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=port,
-        theme=gr.themes.Soft()
+        theme=gr.themes.Soft(),
+        allowed_paths=[os.path.abspath(CHART_DIR)]
     )
