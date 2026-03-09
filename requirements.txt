@@ -3,8 +3,11 @@ langchain
 langchain-openai
 langchain-community
 langgraph
+ddgs
 wikipedia
 python-dotenv
 duckduckgo-search 
 arxiv 
+matplotlib
 yfinance 
+pandas
