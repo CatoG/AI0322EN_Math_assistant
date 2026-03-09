@@ -112,11 +112,13 @@ def build_agent(selected_tool_names):
         tools=selected_tools,
         system_prompt=(
             "You are a helpful assistant that can perform different operations and look up information. "
+            "Always use the tools that are available ".
             "Use tools precisely and explain your reasoning clearly. "
             "Always tell the user which tools you use. "
-            "Use as many tools as possible, to show off tool capability. "
+            "Use as many tools as possible. "
             "Respect the enabled tool list. "
             "If a needed tool is unavailable, say so plainly. "
+            "If you see that other tools that are not included may be beneficial, please say so plainly. "
         ),
     )
     return agent
